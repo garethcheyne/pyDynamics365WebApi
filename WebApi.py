@@ -17,7 +17,7 @@ class WebApiException(Exception):
 
 def GetToken(config_file_location):
     """
-    Connect to the Azure Authorization URL and get a token to us the WebApi Calls.
+    Connect to the Azure Authorization URL and get a token to us the WebApi Calls.b
     """
     with open(config_file_location) as ymlfile:
         cfg = yaml.load(ymlfile)
