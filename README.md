@@ -4,8 +4,8 @@ A Python Module that utilises `Dynamics365 WebApi` and connects via `Azure App T
 
 Basic design around `Microsoft Project` [MS Developer Documentation](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/developer/clientapi/reference/xrm-webapi)
 
-#### 1). Simple Use
-1). Simple syntax of using the package.
+#### 1). Simple Use Command Line
+Simple syntax of using the package.
 > ```python WebApi.py -H``` Show the package argument help.
 
 > ```python WebApi.py -V``` Show the current installed version of this package.
@@ -17,7 +17,7 @@ Basic design around `Microsoft Project` [MS Developer Documentation](https://doc
 > ```python WebApi.py -C <file location>``` Change the default location of the Config.yaml file.
 
 
-#### 2). Config
+#### 2). Config File
 You will need to create a yaml config file that includes all your creds to connect to your instance of Dynamics CRM. The default file name should be called xrm_config.yaml
 
 **`Example config.yaml file.`**
@@ -40,7 +40,7 @@ You will need to create a yaml config file that includes all your creds to conne
   XRM_CLIENTSECRET: ??
 ```
 
-#### 3). Basic use as follows
+#### 3). Import and Basic Use
 ```
 from pyDynamicsWebApi import WebApi
 
