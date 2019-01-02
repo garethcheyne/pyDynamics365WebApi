@@ -20,6 +20,8 @@ Basic design around `Microsoft Project` [MS Developer Documentation](https://doc
 2). You will need to create a yaml config file that includes all your creds to connect to your instance of Dynamics CRM. The default file name should be called xrm_config.yaml
 
 **`Example xrm_config.yaml file.`**
+
+ >Download Sample File https://github.com/garethcheyne/pyDynamics365WebApi/blob/master/sample_config.yaml
 ```
   Resource URI, ie you CRM Instance  
   RESOURCE_URI: https://???.crm6.dynamics.com  
