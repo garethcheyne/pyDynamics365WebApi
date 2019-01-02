@@ -84,8 +84,9 @@ class WebApi(object):
 
     def __connection_test__(self):
         """
-        Basis test that you have configured your yaml file, and your credentials works. Response should be OrganizationId, UserId, and BusinessUnitID
-        :return: json responce
+        Basis test that you have configured your yaml file, and your credentials works. Response should be
+        OrganizationId, UserId, and BusinessUnitID
+        :return: json response
         """
         response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/WhoAmI', headers=self._headers)
         if response.status_code is not 200:
