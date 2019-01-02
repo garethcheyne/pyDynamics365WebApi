@@ -1,0 +1,19 @@
+# Resource URI, ie you CRM Instance
+RESOURCE_URI: https://xx.dynamics.com
+SANDBOX_RESOURCE_URI: https://xx.dynamics.com
+API_VERSION: 9.1
+
+# Username and Password to CRM Instance
+XRM_USERNAME: xx@xx.onmicrosoft.com
+XRM_PASSWORD: xx
+
+# Azure Tenant Auth Url
+TENANT_AUTHORIZATION_URL: https://login.windows.net/xx
+
+# Azure ClientID and Secret for Dynamics Api
+XRM_CLIENTID: xx
+XRM_CLIENTSECRET: xx
+
+
+
+
