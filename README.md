@@ -9,11 +9,11 @@ Basic design around `Microsoft Project` [MS Developer Documentation](https://doc
 
 > ```python WebApi.py -V``` Show the current installed version of this package.
 
-> ```python WebApi.py -I``` Change the Dynamics365 instance of what is listed in the Config.yaml file.
+> ```python WebApi.py -I <xxx.dynamcis.com>``` Change the Dynamics365 instance of what is listed in the Config.yaml file.
 
 > ```python WebApi.py -T``` Test Connection to your Dynamics365 instance.
 
-> ```python WebApi.py -C``` Change the default location of the Config.yaml file.
+> ```python WebApi.py -C <file location>``` Change the default location of the Config.yaml file.
 
 
 
