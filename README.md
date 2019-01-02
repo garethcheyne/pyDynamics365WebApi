@@ -1,8 +1,8 @@
 ### pyDynamicsWebApi
 
-A Python Module that utilises Dynamics365 WebApi and connects via Azure App Token.
+A Python Module that utilises `Dynamics365 WebApi` and connects via `Azure App Token`.
 
-Basic design around Microsoft Project [MS Developer Documentation](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/developer/clientapi/reference/xrm-webapi)
+Basic design around `Microsoft Project` [MS Developer Documentation](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/developer/clientapi/reference/xrm-webapi)
 
 
 1). You will need to create a yaml config file that includes all your creds to connect to your instance of Dynamics CRM. The default file name should be called xrm_config.yaml
@@ -35,10 +35,9 @@ WebApi.__connection_test__()
 response = WebApi.RetrieveMultipleRecords('accounts', options="?$filter ???")
 
 ```
-
-### Things To Do:
-- [] DeleteRecord
-- [] isAvaiableOffline
-- [] execute
-- [] executeMultiple
-- [] Generic other stuff
+#### Things To Do:
+- [x] DeleteRecord
+- [ ] isAvaiableOffline
+- [ ] execute
+- [ ] executeMultiple
+- [ ] Generic other stuff
