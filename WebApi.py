@@ -253,7 +253,7 @@ class WebApi(object):
 
 
 if __name__ == '__main__':
-    # Check OS type and lear the screen accordingly
+    # Check OS type and lear the screen accordingly.
     if platform.system() is 'Windows':
         os.system('cls')
     else:
