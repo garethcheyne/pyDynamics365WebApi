@@ -1,8 +1,13 @@
+import os
+import platform
+import argparse
 import requests
 import json
 import yaml
 from datetime import datetime, timedelta
 
+# DEFAULTS
+config_file = 'config.yaml'
 
 # Resource URI, ie you CRM Instance
 RESOURCE_URI = ''
@@ -248,4 +253,41 @@ class WebApi(object):
 
 
 if __name__ == '__main__':
-    WebApi(config_file_location="../xrm_config.yaml").__connection_test__()
+    # Check OS type and lear the screen accordingly
+    if platform.system() is 'Windows':
+        os.system('cls')
+    else:
+        os.system('clear')
+
+    # Initiate the parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-V", "--version", help="Show program version", action="store_true")
+    parser.add_argument("-T", "--test", help="Run a basis test on the Config", action="store_true")
+    parser.add_argument("-R", "--readme", help="Show the help URL", action="store_true")
+    parser.add_argument("-I", "--instance", help="Set the Dynamics CRM Instance")
+    parser.add_argument("-C", "--config", help="Set location on the YAML Config file.")
+
+    # Read arguments from the command line
+    args = parser.parse_args()
+
+    # Process the arguments and do something with them.
+    if args.instance:
+        instance = args.instance
+
+    if args.config:
+        config_file = args.config
+
+    if args.version:
+        print('pyDynamics365WebApi\n  '
+              ' Version 0.1 alpha')
+
+    if args.test:
+        print('pyDynamics365WebApi\n '
+              ' Running quote connections test \n')
+        WebApi(config_file_location=config_file).__connection_test__()
+
+    if args.readme:
+        print('pyDynamics365WebApi \n '
+              ' Read the How to here. https://github.com/garethcheyne/pyDynamics365WebApi/blob/master/README.md')
+
+
