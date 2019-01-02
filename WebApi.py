@@ -84,6 +84,7 @@ class WebApi(object):
             'Accept': 'application/json',
             'Authorization': 'Bearer ' + self._token,
             'Content-Type': 'application/json; charset=utf-8',
+            'Prefer': 'return=representation',
             'MSCRMCallerID': self._user,
         }
 
@@ -197,29 +198,24 @@ class WebApi(object):
         return
 
 
-    def UpdateRecord(self, entityLogicalName=None, id=None, data=None, user=None):
+    def updateRecord(self, entity=None, guid=None, data=None, user=None):
         """
         Update a Dynamics Entity Record
-        :param entityLogicalName: Required, A Dynamics entity logical name.
-        :param id: Required, The record id.
+        :param entity: Required, A Dynamics entity logical name.
+        :param guid: Required, The record id.
         :param data: Required, A list of fields and the values you want updated.
         :param user: Optional, A Dynamics user id you may want to masquerade as.
-        :return: Dynamics Responce
+        :return: Dynamics365Response
         """
 
         data = json.dumps(data)
 
-        headers = {
-            'OData-MaxVersion': '4.0',
-            'OData-Version': '4.0',
-            'Accept': 'application/json;odata=verbose',
-            'Authorization': 'Bearer ' + self._token,
-            'Content-Type': 'application/json; charset=utf-8',
-            'Prefer': 'return=representation',
-            'MSCRMCallerID': user,
-        }
+        headers = self._headers
 
-        response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entityLogicalName + '(' + id + ')', data=data, headers=headers).json()
+        if user is not None:
+            headers.update({'MSCRMCallerID': user})
+
+        response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers).json()
 
         if 'error' in response:
             print('pyDynamics365WebApi :: Update Record Failed')
@@ -228,9 +224,18 @@ class WebApi(object):
         else:
             return response
 
+    def deleteRecord(self, entity=None, guid=None):
+        headers = self._headers
+        response = requests.delete(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', headers=headers)
 
-    def DeleteRecord(self, entityLogicalName=str, id=str, user=str):
-        pass
+        if response.status_code is 204:
+            print('ServerResponse :: Delete Record Successful')
+            return
+        else:
+            if 'error' in response.json():
+                print('pyDynamics365WebApi :: Delete Record Failed')
+                print('ServerResponse :: ' + response.json()['error']['message'])
+                return
 
     def isAvailableOffline(self):
         pass
@@ -309,13 +314,12 @@ if __name__ == '__main__':
               ' Version 0.1 alpha')
 
     if args.test:
-        print('pyDynamics365WebApji\n '
-              ' Running quote connections test \n')
+        print('pyDynamics365WebApi :: Running Connections Test, (WhoAmI) \n')
         WebApi(config_file_location=config_file).__connection_test__()
 
     if args.readme:
-        print('pyDynamics365WebApi \n '
-              ' Read the How to here. https://github.com/garethcheyne/pyDynamics365WebApi/blob/master/README.md')
+        print('pyDynamics365WebApi :: Click Link Below \n'
+              'https://github.com/garethcheyne/pyDynamics365WebApi/blob/master/README.md')
 
     if args.execute:
         if args.entity and args.query:
@@ -325,8 +329,7 @@ if __name__ == '__main__':
                 print('create')
 
             elif args.execute.lower() == 'deleterecord':
-                response = WebApi.DeleteRecord()
-                print(response)
+                WebApi.deleteRecord(entity=args.entity, guid=args.query)
 
             elif args.execute.lower() == 'retrievemultiplerecords':
                 response = WebApi.RetrieveMultipleRecords(entityLogicalName=args.entity.lower(),
