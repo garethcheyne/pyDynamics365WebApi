@@ -1,4 +1,4 @@
-### pyDynamicsWebApi
+### pyDynamicsWebApi - αlpha
 
 A Python Module that utilises `Dynamics365 WebApi` and connects via `Azure App Token`. The basic design around `Microsoft Project` [MS Developer Documentation](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/developer/clientapi/reference/xrm-webapi). 
 
