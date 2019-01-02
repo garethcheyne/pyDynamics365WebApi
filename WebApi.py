@@ -290,7 +290,7 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--readme", help="Show the help URL", action="store_true")
     parser.add_argument("-i", "--instance", help="Set the Dynamics CRM Instance")
     parser.add_argument("-c", "--config", help="Set location on the YAML Config file.")
-    parser.add_argument("-x", "--execute", help="Execute a WebApi Function, requires to be used with -q, --query and -e, --entity")
+    parser.add_argument("-x", "--execute", help="Execute a WebApi Function, requires to be used with -q, --query and -e, --entity", )
     parser.add_argument("-e", "--entity", help="Entity name for WebApi Function")
     parser.add_argument("-q", "--query", help="Query for WebApi Function")
 
