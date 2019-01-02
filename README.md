@@ -6,17 +6,27 @@ Also what you will need to do is to create a `Azure App Token`, see this blog he
 
 
 
-#### 1). Simple Use Command Line
+#### 1). Simple Use Command Line (CLI)
 Simple syntax of using the package.
-> ```python WebApi.py -H```, Show the package argument help.
+> ```python WebApi.py -h```, Show the package argument help.
 
-> ```python WebApi.py -V```, Show the current installed version of this package.
+> ```python WebApi.py -v```, Show the current installed version of this package.
 
-> ```python WebApi.py -I <xxx.dynamcis.com>```, Change the Dynamics365 instance of what is listed in the Config.yaml file.
+> ```python WebApi.py -i <xxx.dynamcis.com>```, Change the Dynamics365 instance of what is listed in the Config.yaml file.
 
-> ```python WebApi.py -T```, Test Connection to your Dynamics365 instance.
+> ```python WebApi.py -t```, Test Connection to your Dynamics365 instance.
 
-> ```python WebApi.py -C <file location>```, Change the default location of the Config.yaml file.
+> ```python WebApi.py -c <file location>```, Change the default location of the Config.yaml file.
+
+> ```python WebApi.py -x <other arguments>```, Query the Dynamics365 Instance from the CLI.
+
+You are able also to the the CLI interface to perform basic queries.
+_Here is an example of Querying Dynamics365 and return you a result of all the Account Name in the Dynamics365 Instance._
+> `python WebApi.py -x retrievemultiplerecords -e accounts -q "?$select=name"`
+
+_Or here to should the CLI Options_
+> `python WebApi.py -x options`
+
 
 
 #### 2). Config File

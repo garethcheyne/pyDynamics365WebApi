@@ -55,7 +55,7 @@ def GetToken(config_file_location):
         if token_responce.status_code is 200:
             API_TOKEN['token'] = token_responce.json()['access_token']
             API_TOKEN['expire_on'] = CheckTokenExpire(token_responce.json()['expires_in'])
-            print('pyXRM :: New Token')
+            print('pyDynamics365WebApi :: New Token Granted')
             return RESOURCE_URI, API_VERSION, (API_TOKEN['token'])
         else:
             print(':( Sorry you have a connection error, please review your pyXRM config file.')
@@ -65,7 +65,7 @@ def GetToken(config_file_location):
             print('Exiting Script Now...')
             exit()
     else:
-        print('pyXRM :: Old Token')
+        print('pyDynamics365WebApi :: Old Token')
         return RESOURCE_URI, API_VERSION, (API_TOKEN['token'])
 
 
@@ -75,7 +75,7 @@ class WebApi(object):
     https://docs.microsoft.com/en-us/dynamics365/customer-engagement/developer/clientapi/reference/xrm-webapi
     """
 
-    def __init__(self, config_file_location='xrm_config.yaml'):
+    def __init__(self, config_file_location=config_file):
         self._resource_uri, self._api_version, self._token = GetToken(config_file_location)
         self._user = None
         self._headers = {
@@ -87,6 +87,24 @@ class WebApi(object):
             'MSCRMCallerID': self._user,
         }
 
+    @staticmethod
+    def __cli__(args):
+        if args == 'options':
+            options = {'CreateRecord, Create a new Dynamics Record.',
+                       'DeleteRecord, Delete a Dynamics Record.',
+                       'UpdateRecord, Update a Dynamics Record.',
+                       'UpsertRecord, Update or Create a Dynamics Record if does not exist.',
+                       'RetrieveRecord, Retrieve Dynamics Record with GUID or Alternative key.',
+                       'RetrieveMultipleRecords, Retrieve Multiple Dynamics Records with Query',
+                       'IsAvailableOffline'
+                       'Execute, Execute a Dynamics Workflow with GUID of Workflow',
+                       'ExecuteMultiple'
+                       }
+            print('Error :: No valid option selected.\n')
+            print('Options are as follows: (Not case sensitive)')
+            for option in options:
+                print('>> %s' % option)
+
     def __connection_test__(self):
         """
         Basis test that you have configured your yaml file, and your credentials works. Response should be
@@ -95,8 +113,8 @@ class WebApi(object):
         """
         response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/WhoAmI', headers=self._headers)
         if response.status_code is not 200:
-            print('pyXRM :: Connection Test Failed')
-            print(response.status_code)
+            print('pyDynamics365WebApi :: Connection Test Failed \n')
+            print(' status code = %s' % response.status_code)
         else:
             for key, value in response.json().items():
                 print(key, value)
@@ -135,7 +153,9 @@ class WebApi(object):
                 response = requests.get(next_link, headers=self._headers).json()
                 next_response['value'].extend(response['value'])
             if 'error' in response:
+                print('pyDynamics365WebApi :: RetrieveMultipleRecords Failed\n')
                 print(response)
+                return None
             else:
                 return next_response['value']
 
@@ -157,9 +177,11 @@ class WebApi(object):
         }
         response = requests.post(self._resource_uri + '/api/data/v' + self._api_version + '/' + entityLogicalName, data=data, headers=headers).json()
         if 'error' in response:
+            print('pyDynamics365WebApi :: Create Record Failed\n')
             print(response)
-
-        return response
+            return None
+        else:
+            return response
 
     def Upsert(self, entityLogicalName=None, AlternateKey=None, data=None, user=None):
         """
@@ -200,9 +222,11 @@ class WebApi(object):
         response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entityLogicalName + '(' + id + ')', data=data, headers=headers).json()
 
         if 'error' in response:
+            print('pyDynamics365WebApi :: Update Record Failed')
             print(response)
-
-        return response
+            return None
+        else:
+            return response
 
 
     def DeleteRecord(self, entityLogicalName=str, id=str, user=str):
@@ -232,20 +256,20 @@ class WebApi(object):
             return
 
     @staticmethod
-    def ConvertToDictWithIndex(index_key, xrm_response):
+    def ConvertToDictWithIndex(index_key, webapi_response):
         """
-        Converts the responce from Dynamics to a Dictionary where you can control what field is used as the index key.
+        Converts the response from Dynamics to a Dictionary where you can control what field is used as the index key.
         :param index_key: What field would you like as the Dictionary Key?
-        :param xrm_response: The JSON formatted responce from Dynamics.
+        :param webapi_response: The JSON formatted response from Dynamics.
         :return: A Dictionary Object with your desired key.
         """
 
         d = {}
 
-        if 'value' in xrm_response:
-            xrm_response = xrm_response['value']
+        if 'value' in webapi_response:
+            webapi_response = webapi_response['value']
 
-        for entry in xrm_response:
+        for entry in webapi_response:
             d[entry[index_key]] = {}
             d[entry[index_key]] = entry
 
@@ -261,11 +285,14 @@ if __name__ == '__main__':
 
     # Initiate the parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("-V", "--version", help="Show program version", action="store_true")
-    parser.add_argument("-T", "--test", help="Run a basis test on the Config", action="store_true")
-    parser.add_argument("-R", "--readme", help="Show the help URL", action="store_true")
-    parser.add_argument("-I", "--instance", help="Set the Dynamics CRM Instance")
-    parser.add_argument("-C", "--config", help="Set location on the YAML Config file.")
+    parser.add_argument("-v", "--version", help="Show program version", action="store_true")
+    parser.add_argument("-t", "--test", help="Run a basis test on the Config", action="store_true")
+    parser.add_argument("-r", "--readme", help="Show the help URL", action="store_true")
+    parser.add_argument("-i", "--instance", help="Set the Dynamics CRM Instance")
+    parser.add_argument("-c", "--config", help="Set location on the YAML Config file.")
+    parser.add_argument("-x", "--execute", help="Execute a WebApi Function, requires to be used with -q, --query and -e, --entity")
+    parser.add_argument("-e", "--entity", help="Entity name for WebApi Function")
+    parser.add_argument("-q", "--query", help="Query for WebApi Function")
 
     # Read arguments from the command line
     args = parser.parse_args()
@@ -290,4 +317,24 @@ if __name__ == '__main__':
         print('pyDynamics365WebApi \n '
               ' Read the How to here. https://github.com/garethcheyne/pyDynamics365WebApi/blob/master/README.md')
 
+    if args.execute:
+        if args.entity and args.query:
+            print('pyDynamics365WebApi :: Execute a WebApi Function - %s' % args.execute.lower())
+            WebApi = WebApi()
+            if args.execute.lower() == 'createrecord':
+                print('create')
 
+            elif args.execute.lower() == 'deleterecord':
+                response = WebApi.DeleteRecord()
+                print(response)
+
+            elif args.execute.lower() == 'retrievemultiplerecords':
+                response = WebApi.RetrieveMultipleRecords(entityLogicalName=args.entity.lower(),
+                                                          options=args.query.lower())
+                print(response)
+
+        elif args.execute.lower() == 'options':
+            WebApi.__cli__(args='options')
+
+        else:
+            WebApi.__cli__(args='options')
