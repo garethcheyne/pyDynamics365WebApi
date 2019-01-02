@@ -309,7 +309,7 @@ if __name__ == '__main__':
               ' Version 0.1 alpha')
 
     if args.test:
-        print('pyDynamics365WebApi\n '
+        print('pyDynamics365WebApji\n '
               ' Running quote connections test \n')
         WebApi(config_file_location=config_file).__connection_test__()
 
