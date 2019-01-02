@@ -270,7 +270,7 @@ if __name__ == '__main__':
     # Read arguments from the command line
     args = parser.parse_args()
 
-    # Process the arguments and do something with them.
+    # Process the arguments and do something with them..
     if args.instance:
         instance = args.instance
 
