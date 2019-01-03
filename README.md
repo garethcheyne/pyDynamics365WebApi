@@ -35,22 +35,6 @@ You will need to create a yaml config file that includes all your creds to conne
 **`Example config.yaml file.`**
 
  >Download [config.yaml](https://github.com/garethcheyne/pyDynamics365WebApi/blob/master/sample_config.yaml)
-```
-  Resource URI, ie you CRM Instance  
-  RESOURCE_URI: https://???.crm6.dynamics.com  
-  API_VERSION: 9.0  
-
-  Username and Password to CRM Instance  
-  XRM_USERNAME: ??
-  XRM_PASSWORD: ??
-
-  Azure Tenant Auth Url  
-  TENANT_AUTHORIZATION_URL: ??  
-
-  Azure ClientID and Secret for Dynamics Api  
-  XRM_CLIENTID: ??  
-  XRM_CLIENTSECRET: ??
-```
 
 #### 3). Import and Basic Use
 ```

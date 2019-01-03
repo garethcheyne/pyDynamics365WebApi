@@ -1,19 +1,21 @@
+# Config file for Dynamics 365, and Authorized Azure App
+
 # Resource URI, ie you CRM Instance
-RESOURCE_URI: https://xx.dynamics.com
-SANDBOX_RESOURCE_URI: https://xx.dynamics.com
-API_VERSION: 9.1
+INSTANCE:
+  PRODUCTION: https://production.dynamics.com
+  SANDBOX: https://sandbox.dynamics.com
+  API_VERSION: 9.1
 
 # Username and Password to CRM Instance
-XRM_USERNAME: xx@xx.onmicrosoft.com
-XRM_PASSWORD: xx
+DYNAMICS_CREDS:
+  USERNAME: <username>
+  PASSWORD: <password>
 
 # Azure Tenant Auth Url
-TENANT_AUTHORIZATION_URL: https://login.windows.net/xx
+AZURE:
+  AUTHORIZATION_URL: https://login.windows.net/<app guid>/oauth2/token/
 
 # Azure ClientID and Secret for Dynamics Api
-XRM_CLIENTID: xx
-XRM_CLIENTSECRET: xx
-
-
-
-
+APP:
+  CLIENTID: <client id>
+  CLIENTSECRET: <client secret>
