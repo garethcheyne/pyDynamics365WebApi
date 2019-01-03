@@ -20,19 +20,28 @@ API_TOKEN = {'token': None, 'expire_on': None}
 class WebApiException(Exception):
     pass
 
-def GetToken(config_file_location):
+
+def getToken(config_location, instance='prod'):
     """
     Connect to the Azure Authorization URL and get a token to us the WebApi Calls.b
     """
-    with open(config_file_location) as ymlfile:
-        cfg = yaml.load(ymlfile)
-        RESOURCE_URI = str(cfg['RESOURCE_URI'])
-        API_VERSION = str(cfg['API_VERSION'])
-        XRM_USERNAME = cfg['XRM_USERNAME']
-        XRM_PASSWORD = cfg['XRM_PASSWORD']
-        TENANT_AUTHORIZATION_URL = cfg['TENANT_AUTHORIZATION_URL']
-        XRM_CLIENTID = cfg['XRM_CLIENTID']
-        XRM_CLIENTSECRET = cfg['XRM_CLIENTSECRET']
+    with open(config_location, 'r') as ymlfile:
+        try:
+            cfg = yaml.load(ymlfile)
+            if instance == 'sandbox':
+                RESOURCE_URI = str(cfg['INSTANCE']['SANDBOX'])
+            else:
+                RESOURCE_URI = str(cfg['INSTANCE']['PRODUCTION'])
+
+            API_VERSION = str(cfg['INSTANCE']['API_VERSION'])
+            XRM_USERNAME = cfg['DYNAMICS_CREDS']['USERNAME']
+            XRM_PASSWORD = cfg['DYNAMICS_CREDS']['PASSWORD']
+            TENANT_AUTHORIZATION_URL = cfg['AZURE']['AUTHORIZATION_URL']
+            XRM_CLIENTID = cfg['APP']['CLIENTID']
+            XRM_CLIENTSECRET = cfg['APP']['CLIENTSECRET']
+        except yaml.YAMLError as err:
+            print('')
+            print(err)
 
     def CheckTokenExpire(secs):
         """
@@ -76,7 +85,7 @@ class WebApi(object):
     """
 
     def __init__(self, config_file_location=config_file):
-        self._resource_uri, self._api_version, self._token = GetToken(config_file_location)
+        self._resource_uri, self._api_version, self._token = getToken(config_file_location)
         self._user = None
         self._headers = {
             'OData-MaxVersion': '4.0',
@@ -310,8 +319,8 @@ if __name__ == '__main__':
         config_file = args.config
 
     if args.version:
-        print('pyDynamics365WebApi\n  '
-              ' Version 0.1 alpha')
+        print('pyDynamics365WebApi :: Vesion 0.1.0.0 alpha')
+        #print(setup.version)
 
     if args.test:
         print('pyDynamics365WebApi :: Running Connections Test, (WhoAmI) \n')
