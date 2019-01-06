@@ -21,7 +21,7 @@ class WebApiException(Exception):
     pass
 
 
-def getToken(config_location, instance='prod'):
+def get_token(config_location, instance='prod'):
     """
     Connect to the Azure Authorization URL and get a token to us the WebApi Calls.b
     """
@@ -29,21 +29,22 @@ def getToken(config_location, instance='prod'):
         try:
             cfg = yaml.load(ymlfile)
             if instance == 'sandbox':
-                RESOURCE_URI = str(cfg['INSTANCE']['SANDBOX'])
+                resource_uri = str(cfg['INSTANCE']['SANDBOX'])
             else:
-                RESOURCE_URI = str(cfg['INSTANCE']['PRODUCTION'])
+                resource_uri = str(cfg['INSTANCE']['PRODUCTION'])
 
-            API_VERSION = str(cfg['INSTANCE']['API_VERSION'])
-            XRM_USERNAME = cfg['DYNAMICS_CREDS']['USERNAME']
-            XRM_PASSWORD = cfg['DYNAMICS_CREDS']['PASSWORD']
-            TENANT_AUTHORIZATION_URL = cfg['AZURE']['AUTHORIZATION_URL']
-            XRM_CLIENTID = cfg['APP']['CLIENTID']
-            XRM_CLIENTSECRET = cfg['APP']['CLIENTSECRET']
+            api_version = str(cfg['INSTANCE']['API_VERSION'])
+            username = cfg['DYNAMICS_CREDS']['USERNAME']
+            password = cfg['DYNAMICS_CREDS']['PASSWORD']
+            authorization_url = cfg['AZURE']['AUTHORIZATION_URL']
+            client_id = cfg['APP']['CLIENTID']
+            client_secret = cfg['APP']['CLIENTSECRET']
+
         except yaml.YAMLError as err:
             print('')
             print(err)
 
-    def CheckTokenExpire(secs):
+    def check_token_expire(secs):
         """
         Sets the DateTime of when the Token Expires using the stand python datetime format.
         """
@@ -53,29 +54,31 @@ def getToken(config_location, instance='prod'):
 
     if API_TOKEN['expire_on'] is None or API_TOKEN['expire_on'] < datetime.now():
         data = {
-            'client_id': XRM_CLIENTID,
-            'client_secret': XRM_CLIENTSECRET,
-            'resource': RESOURCE_URI,
-            'username': XRM_USERNAME,
-            'password': XRM_PASSWORD,
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'resource': resource_uri,
+            'username': username,
+            'password': password,
             'grant_type': 'password'
         }
-        token_responce = requests.post(TENANT_AUTHORIZATION_URL, data=data)
-        if token_responce.status_code is 200:
-            API_TOKEN['token'] = token_responce.json()['access_token']
-            API_TOKEN['expire_on'] = CheckTokenExpire(token_responce.json()['expires_in'])
+
+        token_response = requests.post(authorization_url, data=data)
+
+        if token_response.status_code is 200:
+            API_TOKEN['token'] = token_response.json()['access_token']
+            API_TOKEN['expire_on'] = check_token_expire(token_response.json()['expires_in'])
             print('pyDynamics365WebApi :: New Token Granted')
-            return RESOURCE_URI, API_VERSION, (API_TOKEN['token'])
+            return resource_uri, api_version, (API_TOKEN['token'])
         else:
             print(':( Sorry you have a connection error, please review your pyXRM config file.')
             print('=== Stack Trace - Start ===')
-            print(token_responce.json()['error_description'])
+            print(token_response.json()['error_description'])
             print('=== Stack Trace - End ===')
             print('Exiting Script Now...')
             exit()
     else:
         print('pyDynamics365WebApi :: Old Token')
-        return RESOURCE_URI, API_VERSION, (API_TOKEN['token'])
+        return resource_uri, api_version, (API_TOKEN['token'])
 
 
 class WebApi(object):
@@ -85,7 +88,7 @@ class WebApi(object):
     """
 
     def __init__(self, config_file_location=config_file):
-        self._resource_uri, self._api_version, self._token = getToken(config_file_location)
+        self._resource_uri, self._api_version, self._token = get_token(config_file_location)
         self._user = None
         self._headers = {
             'OData-MaxVersion': '4.0',
@@ -100,12 +103,12 @@ class WebApi(object):
     @staticmethod
     def __cli__(args):
         if args == 'options':
-            options = {'CreateRecord, Create a new Dynamics Record.',
+            options = {'create_record, Create a new Dynamics Record.',
                        'DeleteRecord, Delete a Dynamics Record.',
                        'UpdateRecord, Update a Dynamics Record.',
                        'UpsertRecord, Update or Create a Dynamics Record if does not exist.',
-                       'RetrieveRecord, Retrieve Dynamics Record with GUID or Alternative key.',
-                       'RetrieveMultipleRecords, Retrieve Multiple Dynamics Records with Query',
+                       'retrieve_record, Retrieve Dynamics Record with GUID or Alternative key.',
+                       'retrieve_multiple_records, Retrieve Multiple Dynamics Records with Query',
                        'IsAvailableOffline'
                        'Execute, Execute a Dynamics Workflow with GUID of Workflow',
                        'ExecuteMultiple'
@@ -115,7 +118,22 @@ class WebApi(object):
             for option in options:
                 print('>> %s' % option)
 
-    def __connection_test__(self):
+    def get_user_guid(self, full_name=None):
+        """
+        Query's the Dynamics365 instance and return the guid for the selected user.
+        :param full_name: The full name of the Dynamics 365 user.
+        :return: The guid of that user if exists.
+        """
+        response = WebApi.retrieve_multiple_records(self, entity='systemusers', options="?$select=systemuserid&$filter=fullname eq '" + full_name + "'")
+
+        if 'error' in response:
+            return
+        else:
+            guid = response[0]['systemuserid']
+            print(guid)
+            return guid
+
+    def connection_test(self):
         """
         Basis test that you have configured your yaml file, and your credentials works. Response should be
         OrganizationId, UserId, and BusinessUnitID
@@ -130,49 +148,52 @@ class WebApi(object):
                 print(key, value)
             return
 
-    def RetrieveRecord(self, entityLogicalName=None, id=None, options=None, user=None):
+    def retrieve_record(self, entity, guid, options=None, user_guid=None):
         """
         Retrieve a single record from Dynamics CRM, you must supply that records GUID
-        :param entityLogicalName:
-        :param id:
+        :param entity:
+        :param guid:
         :param options:
-        :param user:
+        :param user_guid:
         :return:
         """
+        headers = self._headers
 
-        if user is not None:
-            self._headers.update({'MSCRMCallerID': user})
+        if user_guid is not None:
+            headers.update({'MSCRMCallerID': user_guid})
 
-        response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entityLogicalName + '/' + id + '?' + options, headers=self._headers).json()
+        response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '/' + guid + '?' + options, headers=headers).json()
         return response
 
+    def retrieve_multiple_records(self, entity, options=None, maxPageSize=None, user_guid=None):
 
-    def RetrieveMultipleRecords(self, entityLogicalName=None, options=None, maxPageSize=None, user=None):
+        headers = self._headers
 
-        if user is not None:
-            self._headers.update({'MSCRMCallerID': user})
+        if user_guid is not None:
+            headers.update({'MSCRMCallerID': user_guid})
 
         if maxPageSize is not None:
-            self._headers.update({'Prefer': 'odata.maxpagesize=' + str(maxPageSize)})
+            headers.update({'Prefer': 'odata.maxpagesize=' + str(maxPageSize)})
 
-        response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entityLogicalName + options, headers=self._headers).json()
+        response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + options, headers=headers).json()
         next_response = response
+
         while True:
             if '@odata.nextLink' in response:
                 next_link = response['@odata.nextLink']
                 response = requests.get(next_link, headers=self._headers).json()
                 next_response['value'].extend(response['value'])
             if 'error' in response:
-                print('pyDynamics365WebApi :: RetrieveMultipleRecords Failed\n')
+                print('pyDynamics365WebApi :: retrieve_multiple_records Failed\n')
                 print(response)
                 return None
             else:
                 return next_response['value']
 
-    def CreateRecord(self, entityLogicalName=None, data=None, user=None):
+    def create_record(self, entity=None, data=None, user_guid=None):
 
-        if user is not None:
-            self._headers.update({'MSCRMCallerID': user})
+        if user_guid is not None:
+            self._headers.update({'MSCRMCallerID': user_guid})
 
         data = json.dumps(data)
 
@@ -183,9 +204,9 @@ class WebApi(object):
             'Authorization': 'Bearer ' + self._token,
             'Content-Type': 'application/json; charset=utf-8',
             'Prefer': 'return=representation',
-            'MSCRMCallerID': user,
+            'MSCRMCallerID': user_guid,
         }
-        response = requests.post(self._resource_uri + '/api/data/v' + self._api_version + '/' + entityLogicalName, data=data, headers=headers).json()
+        response = requests.post(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity, data=data, headers=headers).json()
         if 'error' in response:
             print('pyDynamics365WebApi :: Create Record Failed\n')
             print(response)
@@ -193,27 +214,42 @@ class WebApi(object):
         else:
             return response
 
-    def Upsert(self, entityLogicalName=None, AlternateKey=None, data=None, user=None):
+    def upsert_record(self, entity, guid=None, alternate_key=None, data=None, user_guid=None):
         """
         Update or Create a Dynamics Entity Record
-        :param entityLogicalName:
-        :param altkey:
+        :param entity:
+        :param guid:
+        :param alternate_key:
         :param data:
-        :param user:
+        :param user_guid:
         :return:
         """
         data = json.dumps(data)
 
-        return
+        headers = self._headers
+        headers.update({'If-Match': '*'})
 
+        if user_guid is not None:
+            headers.update({'MSCRMCallerID': user_guid})
 
-    def updateRecord(self, entity=None, guid=None, data=None, user=None):
+        response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers)
+
+        if response.status_code is 204:
+            response = response.json()
+            return response
+
+        elif 'error' in response:
+            print('pyDynamics365WebApi :: Update Record Failed')
+            print(response)
+            return None
+
+    def update_record(self, entity, guid, data, user_guid=None):
         """
         Update a Dynamics Entity Record
         :param entity: Required, A Dynamics entity logical name.
         :param guid: Required, The record id.
         :param data: Required, A list of fields and the values you want updated.
-        :param user: Optional, A Dynamics user id you may want to masquerade as.
+        :param user_guid: Optional, A Dynamics user id you may want to masquerade as.
         :return: Dynamics365Response
         """
 
@@ -221,8 +257,8 @@ class WebApi(object):
 
         headers = self._headers
 
-        if user is not None:
-            headers.update({'MSCRMCallerID': user})
+        if user_guid is not None:
+            headers.update({'MSCRMCallerID': user_guid})
 
         response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers).json()
 
@@ -233,8 +269,20 @@ class WebApi(object):
         else:
             return response
 
-    def deleteRecord(self, entity=None, guid=None):
+    def delete_record(self, entity, guid, user_guid=None):
+        """
+        Deletes a record from Dynamics 365
+        :param entity: Required, The Dynamics365 scheme name.
+        :param guid: Required, The Dynamics365 record guid.
+        :param user_guid: Optional, A Dynamics365 users guid.
+        :return: Null
+
+        """
         headers = self._headers
+
+        if user_guid is not None:
+            headers.update({'MSCRMCallerID': user_guid})
+
         response = requests.delete(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', headers=headers)
 
         if response.status_code is 204:
@@ -246,48 +294,26 @@ class WebApi(object):
                 print('ServerResponse :: ' + response.json()['error']['message'])
                 return
 
-    def isAvailableOffline(self):
-        pass
+    class Tools:
+        @staticmethod
+        def convert_to_dict(response, index_key):
+            """
+            Converts the response from Dynamics365 to a Dictionary where you can control what field is used as an index key.
+            :param response: The JSON formatted response from Dynamics.
+            :param index_key: What field would you like as the Dictionary Key?
+            :return: A Dictionary Object with your desired key.
+            """
 
-    def execute(self):
-        pass
+            dictionary = {}
 
-    def executeMultiple(self):
-        pass
+            if 'value' in response:
+                response = response['value']
 
-    def StatusCode(code):
-        if code is 200:
-            return str(code) + ' :: Success: Result Found'
+            for entry in response:
+                dictionary[entry[index_key]] = {}
+                dictionary[entry[index_key]] = entry
 
-        elif code is 201:
-            return str(code) + ' :: Success: Record Created/Updated.'
-
-        elif code is '500':
-            return str(code) + ' :: Failed: Internal Server Error.'
-
-        else:
-            print(code)
-            return
-
-    @staticmethod
-    def ConvertToDictWithIndex(index_key, webapi_response):
-        """
-        Converts the response from Dynamics to a Dictionary where you can control what field is used as the index key.
-        :param index_key: What field would you like as the Dictionary Key?
-        :param webapi_response: The JSON formatted response from Dynamics.
-        :return: A Dictionary Object with your desired key.
-        """
-
-        d = {}
-
-        if 'value' in webapi_response:
-            webapi_response = webapi_response['value']
-
-        for entry in webapi_response:
-            d[entry[index_key]] = {}
-            d[entry[index_key]] = entry
-
-        return d
+            return dictionary
 
 
 if __name__ == '__main__':
@@ -319,12 +345,18 @@ if __name__ == '__main__':
         config_file = args.config
 
     if args.version:
-        print('pyDynamics365WebApi :: Vesion 0.1.0.0 alpha')
-        #print(setup.version)
+        '''
+        Prints to screen the Version on the Script
+        '''
+        print('pyDynamics365WebApi :: Version 0.1.0.0 alpha')
 
     if args.test:
+        '''
+        Performs a connection test to the Dynamics 365 instance, and 
+        prints to screen its result.
+        '''
         print('pyDynamics365WebApi :: Running Connections Test, (WhoAmI) \n')
-        WebApi(config_file_location=config_file).__connection_test__()
+        WebApi(config_file_location=config_file).connection_test()
 
     if args.readme:
         print('pyDynamics365WebApi :: Click Link Below \n'
@@ -338,11 +370,11 @@ if __name__ == '__main__':
                 print('create')
 
             elif args.execute.lower() == 'deleterecord':
-                WebApi.deleteRecord(entity=args.entity, guid=args.query)
+                WebApi.delete_record(entity=args.entity, guid=args.query)
 
             elif args.execute.lower() == 'retrievemultiplerecords':
-                response = WebApi.RetrieveMultipleRecords(entityLogicalName=args.entity.lower(),
-                                                          options=args.query.lower())
+                response = WebApi.retrieve_multiple_records(entity=args.entity.lower(),
+                                                            options=args.query.lower())
                 print(response)
 
         elif args.execute.lower() == 'options':

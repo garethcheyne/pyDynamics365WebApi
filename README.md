@@ -43,12 +43,12 @@ from pyDynamicsWebApi import WebApi
 WebApi = WebApi(' _location for your config file_ '})
 WebApi.__connection_test__()
 
-response = WebApi.RetrieveMultipleRecords('accounts', options="?$filter ???")
+response = WebApi.retrieve_multiple_records('accounts', options="?$filter ???")
 
 ```
 #### Things To Do:
 - [x] DeleteRecord
 - [ ] isAvaiableOffline
 - [ ] execute
-- [ ] executeMultiple
+- [ ] execute_multiple
 - [ ] Generic other stuff
