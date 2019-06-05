@@ -1,4 +1,4 @@
-### pyDynamicsWebApi - αlpha 
+### pyDynamicsWebApi - αlpha  (NB. Project Incomplete)
 
 A Python Module that utilises `Dynamics365 WebApi` and connects via `Azure App Token`. The basic design around `Microsoft Project` [MS Developer Documentation](https://docs.microsoft.com/en-us/dynamics365/customer-engagement/developer/clientapi/reference/xrm-webapi). 
 
@@ -46,6 +46,11 @@ WebApi.__connection_test__()
 response = WebApi.retrieve_multiple_records('accounts', options="?$filter ???")
 
 ```
+### Need Helf Building a Query?
+```
+Rather than always stressing my brain creating querys to get the data required I have always found [FetchXML Builder](https://www.xrmtoolbox.com/plugins/Cinteros.Xrm.FetchXmlBuilder/) developed by Jonas Rapp that is part of the [XrmToolBox](https://www.xrmtoolbox.com) extreamly helpful.  Simply use the GUI to create your query, then copy out the query string and place in where needed in your project.
+```
+
 #### Things To Do:
 - [x] delete_record
 - [ ] is_avaiable_offline
