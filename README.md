@@ -46,10 +46,10 @@ WebApi.__connection_test__()
 response = WebApi.retrieve_multiple_records('accounts', options="?$filter ???")
 
 ```
+
 ### Need Helf Building a Query?
-```
 Rather than always stressing my brain creating querys to get the data required I have always found [FetchXML Builder](https://www.xrmtoolbox.com/plugins/Cinteros.Xrm.FetchXmlBuilder/) developed by Jonas Rapp that is part of the [XrmToolBox](https://www.xrmtoolbox.com) extreamly helpful.  Simply use the GUI to create your query, then copy out the query string and place in where needed in your project.
-```
+
 
 #### Things To Do:
 - [x] delete_record
