@@ -9,17 +9,8 @@ from datetime import datetime, timedelta
 # DEFAULTS
 config_file = 'config.yaml'
 
-# Resource URI, ie you CRM Instance
-RESOURCE_URI = ''
-API_VERSION = ''
-
 # Azure Token Created by Script
 API_TOKEN = {'token': None, 'expire_on': None}
-
-
-class WebApiException(Exception):
-    pass
-
 
 def get_token(config_location, instance='prod'):
     """
@@ -36,7 +27,7 @@ def get_token(config_location, instance='prod'):
             api_version = str(cfg['INSTANCE']['API_VERSION'])
             username = cfg['DYNAMICS_CREDS']['USERNAME']
             password = cfg['DYNAMICS_CREDS']['PASSWORD']
-            authorization_url = cfg['AZURE']['AUTHORIZATION_URL']
+            authorization_url = 'https://login.microsoftonline.com/' + cfg['AZURE']['APP_ID'] + '/oauth2/token/'
             client_id = cfg['APP']['CLIENTID']
             client_secret = cfg['APP']['CLIENTSECRET']
 

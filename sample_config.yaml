@@ -2,8 +2,8 @@
 
 # Resource URI, ie you CRM Instance
 INSTANCE:
-  PRODUCTION: https://production.dynamics.com
-  SANDBOX: https://sandbox.dynamics.com
+  PRODUCTION: <https://production.dynamics.com>
+  SANDBOX: <https://sandbox.dynamics.com>
   API_VERSION: 9.1
 
 # Username and Password to CRM Instance
@@ -13,7 +13,7 @@ DYNAMICS_CREDS:
 
 # Azure Tenant Auth Url
 AZURE:
-  AUTHORIZATION_URL: https://login.windows.net/<app guid>/oauth2/token/
+  APP_GUID: <app guid>
 
 # Azure ClientID and Secret for Dynamics Api
 APP:

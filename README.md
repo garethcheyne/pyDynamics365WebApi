@@ -47,8 +47,8 @@ response = WebApi.retrieve_multiple_records('accounts', options="?$filter ???")
 
 ```
 #### Things To Do:
-- [x] DeleteRecord
-- [ ] isAvaiableOffline
+- [x] delete_record
+- [ ] is_avaiable_offline
 - [ ] execute
 - [ ] execute_multiple
-- [ ] Generic other stuff
+- [ ] Generic other stuff (Tidy Code.)
