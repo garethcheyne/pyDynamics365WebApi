@@ -148,7 +148,7 @@ class WebApi(object):
                 print(key, value)
             return
 
-    def retrieve_record(self, entity, guid, options=None, user_guid=None):
+    def retrieve_record(self, entity, guid, options=None, user_guid=None, user_fullname=None):
         """
         Retrieve a single record from Dynamics CRM, you must supply that records GUID
         :param entity:
@@ -159,15 +159,22 @@ class WebApi(object):
         """
         headers = self._headers
 
+        if user_fullname is not None:
+            user_guid = get_user_guid(user_fullname)
+
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
 
         response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '/' + guid + '?' + options, headers=headers).json()
+
         return response
 
-    def retrieve_multiple_records(self, entity, options=None, maxPageSize=None, user_guid=None):
+    def retrieve_multiple_records(self, entity, options=None, maxPageSize=None, user_guid=None, user_fullname=None):
 
         headers = self._headers
+
+        if user_fullname is not None:
+            user_guid = get_user_guid(user_fullname)
 
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
@@ -190,23 +197,20 @@ class WebApi(object):
             else:
                 return next_response['value']
 
-    def create_record(self, entity=None, data=None, user_guid=None):
+    def create_record(self, entity=None, data=None, user_guid=None, user_fullname=None):
+
+        headers = self._headers
+
+        if user_fullname is not None:
+            user_guid = get_user_guid(user_fullname)
 
         if user_guid is not None:
             self._headers.update({'MSCRMCallerID': user_guid})
 
         data = json.dumps(data)
-
-        headers = {
-            'OData-MaxVersion': '4.0',
-            'OData-Version': '4.0',
-            'Accept': 'application/json;odata=verbose',
-            'Authorization': 'Bearer ' + self._token,
-            'Content-Type': 'application/json; charset=utf-8',
-            'Prefer': 'return=representation',
-            'MSCRMCallerID': user_guid,
-        }
+        
         response = requests.post(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity, data=data, headers=headers).json()
+
         if 'error' in response:
             print('pyDynamics365WebApi :: Create Record Failed\n')
             print(response)
@@ -214,23 +218,27 @@ class WebApi(object):
         else:
             return response
 
-    def upsert_record(self, entity, guid=None, alternate_key=None, data=None, user_guid=None):
+    def upsert_record(self, entity, guid=None, alternate_key=None, data=None, user_guid=None, user_fullname=None):
         """
         Update or Create a Dynamics Entity Record
-        :param entity:
-        :param guid:
+        :param entity: Required, A Dynamics 365 entity logical name.
+        :param guid: Required, The Dynamics 364 record id.
         :param alternate_key:
         :param data:
         :param user_guid:
-        :return:
+        :return: Dynamics365 Response
         """
-        data = json.dumps(data)
 
         headers = self._headers
         headers.update({'If-Match': '*'})
 
+        if user_fullname is not None:
+            user_guid = get_user_guid(user_fullname)
+
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
+
+        data = json.dumps(data)
 
         response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers)
 
@@ -243,42 +251,50 @@ class WebApi(object):
             print(response)
             return None
 
-    def update_record(self, entity, guid, data, user_guid=None):
+    def update_record(self, entity, guid, data, user_guid=None, user_fullname=None):
         """
         Update a Dynamics Entity Record
-        :param entity: Required, A Dynamics entity logical name.
-        :param guid: Required, The record id.
+        :param entity: Required, A Dynamics 365 entity logical name.
+        :param guid: Required, The Dynamics 365 record id.
         :param data: Required, A list of fields and the values you want updated.
-        :param user_guid: Optional, A Dynamics user id you may want to masquerade as.
-        :return: Dynamics365Response
+        :param user_guid: Optional, A Dynamics 365 user id you may want to masquerade as.
+        :param user_fullname, Optional, A Dyanmics 365 fullname as stored in the instance. 
+        :return: Dynamics365 Response
         """
-
-        data = json.dumps(data)
 
         headers = self._headers
 
+        if user_fullname is not None:
+            user_guid = get_user_guid(user_fullname)
+            
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
+
+        data = json.dumps(data)
 
         response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers).json()
 
         if 'error' in response:
             print('pyDynamics365WebApi :: Update Record Failed')
-            print(response)
+            print('ServerResponse :: ' + response.json()['error']['message'])
             return None
         else:
             return response
 
-    def delete_record(self, entity, guid, user_guid=None):
+    def delete_record(self, entity, guid, user_guid=None, user_fullname=None):
         """
         Deletes a record from Dynamics 365
-        :param entity: Required, The Dynamics365 scheme name.
-        :param guid: Required, The Dynamics365 record guid.
-        :param user_guid: Optional, A Dynamics365 users guid.
+        :param entity: Required, A Dynamics 365 entity logical name.
+        :param guid: Required, The Dynamics 365 record id.
+        :param user_guid: Optional, A Dynamics 365 user id you may want to masquerade as.
+        :param user_fullname, Optional, A Dyanmics 365 fullname as stored in the instance. 
         :return: Null
 
         """
         headers = self._headers
+        
+        if user_fullname is not None:
+            user_guid = get_user_guid(user_fullname)
 
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
@@ -294,26 +310,29 @@ class WebApi(object):
                 print('ServerResponse :: ' + response.json()['error']['message'])
                 return
 
-    class Tools:
-        @staticmethod
-        def convert_to_dict(response, index_key):
+    def tools():
+        """
+        A collection of helpful tools
+        :function to_dict: 
+        """
+        def to_dict(response, index_key):
             """
-            Converts the response from Dynamics365 to a Dictionary where you can control what field is used as an index key.
-            :param response: The JSON formatted response from Dynamics.
+            Converts the response from Dynamics 365 to a Nested Dictionary where you can control what field is used as an index key.
+            :param response: The JSON formatted response from Dynamics 365.
             :param index_key: What field would you like as the Dictionary Key?
-            :return: A Dictionary Object with your desired key.
+            :return: A Nested Dictionary Object with your desired key.
             """
 
-            dictionary = {}
+            d = {}
 
-            if 'value' in response:
+            if 'value' in response: 
                 response = response['value']
 
             for entry in response:
-                dictionary[entry[index_key]] = {}
-                dictionary[entry[index_key]] = entry
+                d[entry[index_key]] = {}
+                d[entry[index_key]] = entry
 
-            return dictionary
+            return d
 
 
 if __name__ == '__main__':
