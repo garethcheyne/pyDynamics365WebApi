@@ -24,7 +24,7 @@ You are able also to the the CLI interface to perform basic queries.
 _Here is an example of Querying Dynamics365 and return you a result of all the Account Name in the Dynamics365 Instance._
 > `python WebApi.py -x retrievemultiplerecords -e accounts -q "?$select=name"`
 
-_Or here to should the CLI Options_
+_Or here to show the CLI Options_
 > `python WebApi.py -x options`
 
 

@@ -9,77 +9,86 @@ from datetime import datetime, timedelta
 # DEFAULTS
 config_file = 'config.yaml'
 
-# Azure Token Created by Script
-API_TOKEN = {'token': None, 'expire_on': None}
-
-def get_token(config_location, instance='prod'):
+class Token():
     """
     Connect to the Azure Authorization URL and get a token to us the WebApi Calls.b
     """
-    with open(config_location, 'r') as ymlfile:
-        try:
-            cfg = yaml.load(ymlfile)
-            if instance == 'sandbox':
-                resource_uri = str(cfg['INSTANCE']['SANDBOX'])
-            else:
-                resource_uri = str(cfg['INSTANCE']['PRODUCTION'])
+    @staticmethod
+    def check_expire(self):
+        if self._token_expires >= datetime.now():
+            print("current")            
+            return
+        else:
+            print("expired")
+            self._resource_uri, self._api_version, self._token, self._token_expires, self._refresh_token = Token.get(self._config_file)
+            return
 
-            api_version = str(cfg['INSTANCE']['API_VERSION'])
-            username = cfg['DYNAMICS_CREDS']['USERNAME']
-            password = cfg['DYNAMICS_CREDS']['PASSWORD']
-            authorization_url = 'https://login.microsoftonline.com/' + cfg['AZURE']['APP_ID'] + '/oauth2/token/'
-            client_id = cfg['APP']['CLIENTID']
-            client_secret = cfg['APP']['CLIENTSECRET']
-
-        except yaml.YAMLError as err:
-            print('')
-            print(err)
-
-    def check_token_expire(secs):
+    @staticmethod
+    def expire_on(secs):
         """
         Sets the DateTime of when the Token Expires using the stand python datetime format.
         """
         now = datetime.now()
-        expire = now + timedelta(0, int(secs))
-        return expire
+        expire_on = now + timedelta(0, int(secs))
+        return expire_on
 
-    if API_TOKEN['expire_on'] is None or API_TOKEN['expire_on'] < datetime.now():
-        data = {
-            'client_id': client_id,
-            'client_secret': client_secret,
-            'resource': resource_uri,
-            'username': username,
-            'password': password,
-            'grant_type': 'password'
-        }
+    @staticmethod
+    def get(config_file, instance='prod'):
+        with open(config_file, 'r') as ymlfile:
+            try:
+                cfg = yaml.load(ymlfile)
+                if instance == 'sandbox':
+                    resource_uri = str(cfg['INSTANCE']['SANDBOX'])
+                else:
+                    resource_uri = str(cfg['INSTANCE']['PRODUCTION'])
 
-        token_response = requests.post(authorization_url, data=data)
+                api_version = str(cfg['INSTANCE']['API_VERSION'])
+                username = cfg['DYNAMICS_CREDS']['USERNAME']
+                password = cfg['DYNAMICS_CREDS']['PASSWORD']
+                authorization_url = 'https://login.microsoftonline.com/' + cfg['AZURE']['APP_ID'] + '/oauth2/token/'
+                client_id = cfg['APP']['CLIENTID']
+                client_secret = cfg['APP']['CLIENTSECRET']
 
-        if token_response.status_code is 200:
-            API_TOKEN['token'] = token_response.json()['access_token']
-            API_TOKEN['expire_on'] = check_token_expire(token_response.json()['expires_in'])
-            print('pyDynamics365WebApi :: New Token Granted')
-            return resource_uri, api_version, (API_TOKEN['token'])
-        else:
-            print(':( Sorry you have a connection error, please review your pyXRM config file.')
-            print('=== Stack Trace - Start ===')
-            print(token_response.json()['error_description'])
-            print('=== Stack Trace - End ===')
-            print('Exiting Script Now...')
-            exit()
-    else:
-        print('pyDynamics365WebApi :: Old Token')
-        return resource_uri, api_version, (API_TOKEN['token'])
+            except yaml.YAMLError as err:
+                print(err)
 
+            data = {
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'resource': resource_uri,
+                'username': username,
+                'password': password,
+                'grant_type': 'password'
+            }
+
+            response = requests.post(authorization_url, data=data)
+
+            if response.status_code is 200:
+                json = response.json()
+                print(json)
+                print('pyDynamics365WebApi :: New Token Granted')
+                return resource_uri, api_version, json['access_token'], Token.expire_on(json['expires_in']), json['refresh_token']
+            else:
+                json = response.json()
+                print(':( Sorry you have a connection error, please review your pyXRM config file.')
+                print('=== Stack Trace - Start ===')
+                print(json['error_description'])
+                print('=== Stack Trace - End ===')
+                print('Exiting Script Now...')
+                return
 
 class WebApi(object):
     """
     List of all the standard Web Api called based on the standardised calls listed on MS Dynamics Web Api Dev site
     https://docs.microsoft.com/en-us/dynamics365/customer-engagement/developer/clientapi/reference/xrm-webapi
+    
+    Attributes:
+        headers: The standard headders required for API calles in the the Dynamics 365 instance.
     """
 
     def __init__(self, config_file_location=config_file):
-        self._resource_uri, self._api_version, self._token = get_token(config_file_location)
+        self._config_file = config_file_location
+        self._resource_uri, self._api_version, self._token, self._token_expires, self._refresh_token = Token.get(self._config_file)
         self._user = None
         self._headers = {
             'OData-MaxVersion': '4.0',
@@ -95,14 +104,14 @@ class WebApi(object):
     def __cli__(args):
         if args == 'options':
             options = {'create_record, Create a new Dynamics Record.',
-                       'DeleteRecord, Delete a Dynamics Record.',
-                       'UpdateRecord, Update a Dynamics Record.',
-                       'UpsertRecord, Update or Create a Dynamics Record if does not exist.',
+                       'delete_record, Delete a Dynamics Record.',
+                       'update_record, Update a Dynamics Record.',
+                       'upsert_record, Update or Create a Dynamics Record if does not exist.',
                        'retrieve_record, Retrieve Dynamics Record with GUID or Alternative key.',
                        'retrieve_multiple_records, Retrieve Multiple Dynamics Records with Query',
-                       'IsAvailableOffline'
-                       'Execute, Execute a Dynamics Workflow with GUID of Workflow',
-                       'ExecuteMultiple'
+                       'is_available_offline'
+                       'execute, Execute a Dynamics Workflow with GUID of Workflow',
+                       'execute_multiple'
                        }
             print('Error :: No valid option selected.\n')
             print('Options are as follows: (Not case sensitive)')
@@ -130,6 +139,7 @@ class WebApi(object):
         OrganizationId, UserId, and BusinessUnitID
         :return: json response
         """
+        Token.check_expire(self)
         response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/WhoAmI', headers=self._headers)
         if response.status_code is not 200:
             print('pyDynamics365WebApi :: Connection Test Failed \n')
@@ -148,6 +158,7 @@ class WebApi(object):
         :param user_guid:
         :return:
         """
+        Token.check_expire(self)
         headers = self._headers
 
         if user_fullname is not None:
@@ -161,7 +172,7 @@ class WebApi(object):
         return response
 
     def retrieve_multiple_records(self, entity, options=None, maxPageSize=None, user_guid=None, user_fullname=None):
-
+        Token.check_expire(self)
         headers = self._headers
 
         if user_fullname is not None:
@@ -189,11 +200,20 @@ class WebApi(object):
                 return next_response['value']
 
     def create_record(self, entity=None, data=None, user_guid=None, user_fullname=None):
+        """
+        Create a Dynamics Entity Record
+        :param entity: Required, A Dynamics 365 entity logical name.
+        :param data: Required, A list of fields and the values you want updated.
+        :param user_guid: Optional, A Dynamics 365 user id you may want to masquerade as.
+        :param user_fullname, Optional, A Dyanmics 365 fullname as stored in the instance. 
+        :return: Dynamics365 Response with the created record id/guid
+        """
+        Token.check_expire(self)
 
         headers = self._headers
 
         if user_fullname is not None:
-            user_guid = get_user_guid(user_fullname)
+            user_guid = get_user_guid(self, user_fullname)
 
         if user_guid is not None:
             self._headers.update({'MSCRMCallerID': user_guid})
@@ -215,10 +235,13 @@ class WebApi(object):
         :param entity: Required, A Dynamics 365 entity logical name.
         :param guid: Required, The Dynamics 364 record id.
         :param alternate_key:
-        :param data:
-        :param user_guid:
+        :param data: Required, A list of fields and the values you want updated.
+        :param user_guid: Optional, A Dynamics 365 user id you may want to masquerade as.
+        :param user_fullname, Optional, A Dyanmics 365 fullname as stored in the instance. 
         :return: Dynamics365 Response
         """
+
+        Token.check_expire(self)
 
         headers = self._headers
         headers.update({'If-Match': '*'})
@@ -252,6 +275,7 @@ class WebApi(object):
         :param user_fullname, Optional, A Dyanmics 365 fullname as stored in the instance. 
         :return: Dynamics365 Response
         """
+        Token.check_expire(self)
 
         headers = self._headers
 
@@ -282,6 +306,8 @@ class WebApi(object):
         :return: Null
 
         """
+        Token.check_expire(self)
+
         headers = self._headers
         
         if user_fullname is not None:
@@ -301,6 +327,7 @@ class WebApi(object):
                 print('ServerResponse :: ' + response.json()['error']['message'])
                 return
 
+    @staticmethod
     def tools():
         """
         A collection of helpful tools
