@@ -287,14 +287,14 @@ class WebApi(object):
 
         data = json.dumps(data)
 
-        response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers).json()
+        response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers)
 
-        if 'error' in response:
+        if response.status_code is not 200:
             print('pyDynamics365WebApi :: Update Record Failed')
             print('ServerResponse :: ' + response.json()['error']['message'])
             return None
         else:
-            return response
+            return response.json()
 
     def delete_record(self, entity, guid, user_guid=None, user_fullname=None):
         """
