@@ -4,33 +4,32 @@ import argparse
 import requests
 import json
 import yaml
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 # DEFAULTS
 config_file = 'config.yaml'
 
 class Token():
     """
-    Connect to the Azure Authorization URL and get a token to us the WebApi Calls.b
+    Connect to the Azure Authorization URL and get a token to us the WebApi Calls.
     """
     @staticmethod
-    def check_expire(self):
-        if self._token_expires >= datetime.now():
-            print("current")            
+    def check_expire(self):        
+        """
+        Checks the expiery of the token and if that time has passed refreshes the system.
+        """
+        if self._token_expires >  datetime.utcnow(): 
             return
         else:
-            print("expired")
             self._resource_uri, self._api_version, self._token, self._token_expires, self._refresh_token = Token.get(self._config_file)
             return
 
     @staticmethod
     def expire_on(secs):
         """
-        Sets the DateTime of when the Token Expires using the stand python datetime format.
+        Sets the DateTime of when the Token Expires using the stand python datetime format - 15sec.
         """
-        now = datetime.now()
-        expire_on = now + timedelta(0, int(secs))
-        return expire_on
+        return datetime.utcnow() + timedelta(0, int(secs) -15)
 
     @staticmethod
     def get(config_file, instance='prod'):
@@ -65,7 +64,6 @@ class Token():
 
             if response.status_code is 200:
                 json = response.json()
-                print(json)
                 print('pyDynamics365WebApi :: New Token Granted')
                 return resource_uri, api_version, json['access_token'], Token.expire_on(json['expires_in']), json['refresh_token']
             else:
@@ -149,7 +147,7 @@ class WebApi(object):
                 print(key, value)
             return
 
-    def retrieve_record(self, entity, guid, options=None, user_guid=None, user_fullname=None):
+    def retrieve_record(self, entity, guid, options=None, user_guid=None, user_fullname=None, debug=None):
         """
         Retrieve a single record from Dynamics CRM, you must supply that records GUID
         :param entity:
@@ -162,7 +160,7 @@ class WebApi(object):
         headers = self._headers
 
         if user_fullname is not None:
-            user_guid = get_user_guid(user_fullname)
+            user_guid = self.get_user_guid(user_fullname)
 
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
@@ -171,12 +169,12 @@ class WebApi(object):
 
         return response
 
-    def retrieve_multiple_records(self, entity, options=None, maxPageSize=None, user_guid=None, user_fullname=None):
+    def retrieve_multiple_records(self, entity, options=None, maxPageSize=None, user_guid=None, user_fullname=None, debug=False):
         Token.check_expire(self)
         headers = self._headers
 
         if user_fullname is not None:
-            user_guid = get_user_guid(user_fullname)
+            user_guid = self.get_user_guid(user_fullname)
 
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
@@ -184,7 +182,17 @@ class WebApi(object):
         if maxPageSize is not None:
             headers.update({'Prefer': 'odata.maxpagesize=' + str(maxPageSize)})
 
-        response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + options, headers=headers).json()
+        response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + options, headers=headers)
+
+        if debug is True:
+            print(response)
+
+        if response.status_code is not 200:
+            print(response.content)
+            return []
+
+        response = response.json()
+
         next_response = response
 
         while True:
@@ -199,7 +207,7 @@ class WebApi(object):
             else:
                 return next_response['value']
 
-    def create_record(self, entity=None, data=None, user_guid=None, user_fullname=None):
+    def create_record(self, entity=None, data=None, user_guid=None, user_fullname=None, debug=False):
         """
         Create a Dynamics Entity Record
         :param entity: Required, A Dynamics 365 entity logical name.
@@ -213,14 +221,24 @@ class WebApi(object):
         headers = self._headers
 
         if user_fullname is not None:
-            user_guid = get_user_guid(self, user_fullname)
+            user_guid = self.get_user_guid(user_fullname)
 
         if user_guid is not None:
             self._headers.update({'MSCRMCallerID': user_guid})
 
         data = json.dumps(data)
+
+        if debug is True:
+            print("pyDynamics365WebApi :: Request Payload..\n")
+            print(data)
         
-        response = requests.post(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity, data=data, headers=headers).json()
+        response = requests.post(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity, data=data, headers=headers)
+
+        if debug is True:
+            print("pyDynamics365WebApi :: Request Response..\n")
+            print(response)
+
+        response = response.json()
 
         if 'error' in response:
             print('pyDynamics365WebApi :: Create Record Failed\n')
@@ -247,7 +265,7 @@ class WebApi(object):
         headers.update({'If-Match': '*'})
 
         if user_fullname is not None:
-            user_guid = get_user_guid(user_fullname)
+            user_guid = self.get_user_guid(user_fullname)
 
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
@@ -280,7 +298,7 @@ class WebApi(object):
         headers = self._headers
 
         if user_fullname is not None:
-            user_guid = get_user_guid(user_fullname)
+            user_guid = self.get_user_guid(user_fullname)
             
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
@@ -311,7 +329,7 @@ class WebApi(object):
         headers = self._headers
         
         if user_fullname is not None:
-            user_guid = get_user_guid(user_fullname)
+            user_guid = self.get_user_guid(user_fullname)
 
         if user_guid is not None:
             headers.update({'MSCRMCallerID': user_guid})
@@ -402,15 +420,15 @@ if __name__ == '__main__':
     if args.execute:
         if args.entity and args.query:
             print('pyDynamics365WebApi :: Execute a WebApi Function - %s' % args.execute.lower())
-            WebApi = WebApi()
+            webapi = WebApi()
             if args.execute.lower() == 'createrecord':
                 print('create')
 
             elif args.execute.lower() == 'deleterecord':
-                WebApi.delete_record(entity=args.entity, guid=args.query)
+                webapi.delete_record(entity=args.entity, guid=args.query)
 
             elif args.execute.lower() == 'retrievemultiplerecords':
-                response = WebApi.retrieve_multiple_records(entity=args.entity.lower(),
+                response = webapi.retrieve_multiple_records(entity=args.entity.lower(),
                                                             options=args.query.lower())
                 print(response)
 
