@@ -22,6 +22,7 @@ class Token():
             return
         else:
             self._resource_uri, self._api_version, self._token, self._token_expires, self._refresh_token = Token.get(self._config_file)
+            self._headers.update({'Authorization': 'Bearer ' + self._token})
             return
 
     @staticmethod
