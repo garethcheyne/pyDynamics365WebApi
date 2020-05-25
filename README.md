@@ -38,12 +38,12 @@ You will need to create a yaml config file that includes all your creds to conne
 
 #### 3). Import and Basic Use
 ```
-from pyDynamicsWebApi import WebApi
+from pyDynamicsWebApi.WepApi import WebApi
 
-WebApi = WebApi(' _location for your config file_ '})
-WebApi.__connection_test__()
+webapi = WebApi(' _location for your config file_ '})
+webapi.__connection_test__()
 
-response = WebApi.retrieve_multiple_records('accounts', options="?$filter ???")
+response = webapi.retrieve_multiple_records('accounts', options="?$filter ???")
 
 ```
 
@@ -57,3 +57,7 @@ Rather than always stressing my brain creating querys to get the data required I
 - [ ] execute
 - [ ] execute_multiple
 - [ ] Generic other stuff (Tidy Code.)
+
+
+#### Fixes.
+- Updated webapi.retrieve_multiple_records to retreave all records based on next_link prama.

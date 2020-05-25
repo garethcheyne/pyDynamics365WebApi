@@ -36,7 +36,7 @@ class Token():
     def get(config_file, instance='prod'):
         with open(config_file, 'r') as ymlfile:
             try:
-                cfg = yaml.load(ymlfile)
+                cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
                 if instance == 'sandbox':
                     resource_uri = str(cfg['INSTANCE']['SANDBOX'])
                 else:
@@ -63,7 +63,7 @@ class Token():
 
             response = requests.post(authorization_url, data=data)
 
-            if response.status_code is 200:
+            if response.status_code == 200:
                 json = response.json()
                 print('pyDynamics365WebApi :: New Token Granted')
                 return resource_uri, api_version, json['access_token'], Token.expire_on(json['expires_in']), json['refresh_token']
@@ -140,7 +140,7 @@ class WebApi(object):
         """
         Token.check_expire(self)
         response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/WhoAmI', headers=self._headers)
-        if response.status_code is not 200:
+        if response.status_code != 200:
             print('pyDynamics365WebApi :: Connection Test Failed \n')
             print(' status code = %s' % response.status_code)
         else:
@@ -160,10 +160,10 @@ class WebApi(object):
         Token.check_expire(self)
         headers = self._headers
 
-        if user_fullname is not None:
+        if user_fullname != None:
             user_guid = self.get_user_guid(user_fullname)
 
-        if user_guid is not None:
+        if user_guid != None:
             headers.update({'MSCRMCallerID': user_guid})
 
         response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '/' + guid + '?' + options, headers=headers).json()
@@ -185,28 +185,25 @@ class WebApi(object):
 
         response = requests.get(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + options, headers=headers)
 
-        if debug is True:
+        if debug == True:
             print(response)
 
-        if response.status_code is not 200:
+        if response.status_code != 200:
             print(response.content)
             return []
 
         response = response.json()
-
         next_response = response
 
-        while True:
-            if '@odata.nextLink' in response:
-                next_link = response['@odata.nextLink']
-                response = requests.get(next_link, headers=self._headers).json()
-                next_response['value'].extend(response['value'])
+        while '@odata.nextLink' in response:            
+            response = requests.get(response['@odata.nextLink'], headers=self._headers).json()
+            next_response['value'].extend(response['value'])
+
             if 'error' in response:
                 print('pyDynamics365WebApi :: retrieve_multiple_records Failed\n')
                 print(response)
                 return None
-            else:
-                return next_response['value']
+        return next_response['value']
 
     def create_record(self, entity=None, data=None, user_guid=None, user_fullname=None, debug=False):
         """
@@ -275,7 +272,7 @@ class WebApi(object):
 
         response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers)
 
-        if response.status_code is 204:
+        if response.status_code == 204:
             response = response.json()
             return response
 
@@ -298,17 +295,17 @@ class WebApi(object):
 
         headers = self._headers
 
-        if user_fullname is not None:
+        if user_fullname != None:
             user_guid = self.get_user_guid(user_fullname)
             
-        if user_guid is not None:
+        if user_guid != None:
             headers.update({'MSCRMCallerID': user_guid})
 
         data = json.dumps(data)
 
         response = requests.patch(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', data=data, headers=headers)
 
-        if response.status_code is not 200:
+        if response.status_code != 200:
             print('pyDynamics365WebApi :: Update Record Failed')
             print('ServerResponse :: ' + response.json()['error']['message'])
             return None
@@ -329,15 +326,15 @@ class WebApi(object):
 
         headers = self._headers
         
-        if user_fullname is not None:
+        if user_fullname != None:
             user_guid = self.get_user_guid(user_fullname)
 
-        if user_guid is not None:
+        if user_guid != None:
             headers.update({'MSCRMCallerID': user_guid})
 
         response = requests.delete(self._resource_uri + '/api/data/v' + self._api_version + '/' + entity + '(' + guid + ')', headers=headers)
 
-        if response.status_code is 204:
+        if response.status_code == 204:
             print('ServerResponse :: Delete Record Successful')
             return
         else:
@@ -374,7 +371,7 @@ class WebApi(object):
 
 if __name__ == '__main__':
     # Check OS type and lear the screen accordingly.
-    if platform.system() is 'Windows':
+    if platform.system() == 'Windows':
         os.system('cls')
     else:
         os.system('clear')
